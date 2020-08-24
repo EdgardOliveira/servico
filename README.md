@@ -11,6 +11,7 @@ clean it and update the activity with the email thread returned from the service
  - AndroidX
   
 <img src="https://github.com/EdgardOliveira/servico/blob/master/imagens/app.gif" alt="mobile"  height="500" width="300">
+<img src="https://github.com/EdgardOliveira/servico/blob/master/imagens/servico.png" alt="mobile"  height="676" width="991">
 
 ### Aplicativos
 1. Serviço
