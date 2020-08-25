@@ -9,25 +9,23 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private Button btnIncluir, btnVerificar, btnLimpar, btnEnviarEmail;
     private TextInputLayout layEmail, layListaEmails;
     private TextInputEditText edtEmail, edtListaEmails;
-    private LinkedList<String> emailsLinkedList;
+    private CustomLinkedList emailsLinkedList;
+
     private ProgressBar pbServico;
 
     @Override
@@ -50,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btnIncluir.setOnClickListener(this);
         btnEnviarEmail.setOnClickListener(this);
 
-        emailsLinkedList = new LinkedList<>();
+        emailsLinkedList = new CustomLinkedList();
     }
 
     private boolean validarEmail(final String email) {
@@ -64,19 +62,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View view) {
 
-        Intent intent = new Intent();
-        intent.putExtra("emailsLinkedList", emailsLinkedList);
-        intent.setComponent(new ComponentName(
-                "br.com.technologies.venom.servico",
-                "br.com.technologies.venom.servico.PendingIntentService")
-        );
-
         switch (view.getId()) {
             case R.id.btnVerificar:
+                Intent intent = new Intent();
+                intent.setComponent(new ComponentName(
+                        "br.com.technologies.venom.servico",
+                        "br.com.technologies.venom.servico.PendingIntentService")
+                );
+                PendingIntent pendingResult = createPendingResult(100, new Intent(), 0);
+                intent.putExtra("pendingIntent", pendingResult);
+                intent.putExtra("emailsLinkedList", emailsLinkedList.getList().toArray(new String[0]));
+
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     pbServico.setVisibility(View.VISIBLE);
-                    PendingIntent pendingResult = createPendingResult(100, new Intent(), 0);
-                    intent.putExtra("pendingIntent", pendingResult);
                     startForegroundService(intent);
                 } else
                     startService(intent);
@@ -87,19 +85,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     emailsLinkedList.add(edtEmail.getText().toString());
                     edtEmail.setText("");
                     layEmail.setError(null);
-                }else {
+                } else {
                     Toast.makeText(this, edtEmail.getText().toString() + " não parece ser um e-mail válido!", Toast.LENGTH_SHORT).show();
                     layEmail.setError("Informe um e-mail válido!");
                 }
                 break;
             case R.id.btnLimpar:
                 edtListaEmails.setText("");
-                emailsLinkedList.clear();
+                emailsLinkedList = new CustomLinkedList();
                 btnEnviarEmail.setVisibility(View.GONE);
                 break;
             case R.id.btnEnviarEmail:
-                String[] emails = emailsLinkedList.toArray(new String[0]);
-                enviarEmail(emails, "Teste de envio", null);
+                enviarEmail(emailsLinkedList.getList().toArray(new String[0]), "Teste de envio", null);
         }
     }
 
@@ -119,15 +116,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == 100 && resultCode == 200) {
-            List<String> respostaLista = (List<String>) data.getSerializableExtra("emails");
+            Toast.makeText(this, "O serviço respondeu", Toast.LENGTH_LONG).show();
+            String[] emails = data.getStringArrayExtra("emails");
+            emailsLinkedList = new CustomLinkedList();
+            for (String email : emails)
+                emailsLinkedList.add(email);
             edtListaEmails.setText("");
-            for(String email : respostaLista)
+            for (String email : emailsLinkedList.getList())
                 edtListaEmails.setText(edtListaEmails.getText().toString() + email + "\n");
 
             pbServico.setVisibility(View.GONE);
             btnEnviarEmail.setVisibility(View.VISIBLE);
-
-            Toast.makeText(this, "O serviço respondeu", Toast.LENGTH_LONG).show();
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
